@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"os"
+
+	"github.com/marintailor/rcstate/cmd"
 )
 
 func main() {
-	fmt.Println("rcstate - manage your resources effortless")
+	os.Exit(cmd.Run(os.Args[1:]))
 }
