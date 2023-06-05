@@ -35,8 +35,9 @@ func vmRun(args []string) int {
 	}
 
 	cmds := map[string]func() int{
-		"list":  func() int { return vm.list() },
-		"start": func() int { return vm.start() },
+		"list":   func() int { return vm.list() },
+		"start":  func() int { return vm.start() },
+		"status": func() int { return vm.status() },
 	}
 
 	cmd, ok := cmds[args[0]]

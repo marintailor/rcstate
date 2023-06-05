@@ -8,6 +8,7 @@ import (
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"cloud.google.com/go/compute/apiv1/computepb"
+	compute_engine "google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 )
 
@@ -157,4 +158,20 @@ func (i *Instances) Start(inst string) error {
 	}
 
 	return nil
+}
+
+// Status returns the status of the instance.
+func (i *Instances) Status(inst string) (string, error) {
+	ctx := context.Background()
+	computeService, err := compute_engine.NewService(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get status instance %q: %w", inst, err)
+	}
+
+	resp, err := computeService.Instances.Get(i.Project, i.Zone, inst).Context(ctx).Do()
+	if err != nil {
+		return "", fmt.Errorf("get status instance %q: %w", inst, err)
+	}
+
+	return resp.Status, nil
 }

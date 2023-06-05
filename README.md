@@ -25,4 +25,10 @@ rcstate vm start \
   --name <instance_name> \
   --project <project_name> \
   --zone <zone_name>
+
+# show status of an instance in specific project and zone
+rcstate vm status \
+  --name <instance_name> \
+  --project <project_name> \
+  --zone <zone_name>
 ```
