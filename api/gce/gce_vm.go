@@ -175,3 +175,30 @@ func (i *Instances) Status(inst string) (string, error) {
 
 	return resp.Status, nil
 }
+
+// Stop will stop the instance.
+func (i *Instances) Stop(inst string) error {
+	ctx := context.Background()
+	instancesClient, err := compute.NewInstancesRESTClient(ctx)
+	if err != nil {
+		return fmt.Errorf("NewInstancesRESTClient: %w", err)
+	}
+	defer instancesClient.Close()
+
+	req := &computepb.StopInstanceRequest{
+		Project:  i.Project,
+		Zone:     i.Zone,
+		Instance: inst,
+	}
+
+	op, err := instancesClient.Stop(ctx, req)
+	if err != nil {
+		return fmt.Errorf("stop instance: %w", err)
+	}
+
+	if err = op.Wait(ctx); err != nil {
+		return fmt.Errorf("wait operation: %w", err)
+	}
+
+	return nil
+}

@@ -31,4 +31,10 @@ rcstate vm status \
   --name <instance_name> \
   --project <project_name> \
   --zone <zone_name>
+
+# stop an instance in specific project and zone
+rcstate vm stop \
+  --name <instance_name> \
+  --project <project_name> \
+  --zone <zone_name>
 ```

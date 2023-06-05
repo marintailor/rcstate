@@ -38,6 +38,7 @@ func vmRun(args []string) int {
 		"list":   func() int { return vm.list() },
 		"start":  func() int { return vm.start() },
 		"status": func() int { return vm.status() },
+		"stop":   func() int { return vm.stop() },
 	}
 
 	cmd, ok := cmds[args[0]]
