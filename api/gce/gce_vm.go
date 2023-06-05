@@ -131,3 +131,30 @@ func getInstanceDetails(inst *computepb.Instance) Instance {
 func (i *Instances) addInstance(inst Instance) {
 	i.List = append(i.List, inst)
 }
+
+// Start will start an instance.
+func (i *Instances) Start(inst string) error {
+	ctx := context.Background()
+	instancesClient, err := compute.NewInstancesRESTClient(ctx)
+	if err != nil {
+		return fmt.Errorf("NewInstancesRESTClient: %w", err)
+	}
+	defer instancesClient.Close()
+
+	req := &computepb.StartInstanceRequest{
+		Project:  i.Project,
+		Zone:     i.Zone,
+		Instance: inst,
+	}
+
+	op, err := instancesClient.Start(ctx, req)
+	if err != nil {
+		return fmt.Errorf("start instance: %w", err)
+	}
+
+	if err = op.Wait(ctx); err != nil {
+		return fmt.Errorf("wait operation: %w", err)
+	}
+
+	return nil
+}
