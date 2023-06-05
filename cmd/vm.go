@@ -15,6 +15,7 @@ type VirtualMachine struct {
 
 // options stores options from parsed flags.
 type options struct {
+	name    string
 	project string
 	zone    string
 }
@@ -33,18 +34,19 @@ func vmRun(args []string) int {
 		return 1
 	}
 
-	commands := map[string]func() int{
-		"list": func() int { return vm.list() },
+	cmds := map[string]func() int{
+		"list":  func() int { return vm.list() },
+		"start": func() int { return vm.start() },
 	}
 
-	command, ok := commands[args[0]]
+	cmd, ok := cmds[args[0]]
 	if !ok {
-		fmt.Println("No such command: vm", args[0])
+		fmt.Println("no such command: vm", args[0])
 		help()
 		return 1
 	}
 
-	return command()
+	return cmd()
 }
 
 // NewVirtualMachine returns a VirtualMachine struct.
@@ -63,6 +65,9 @@ func NewVirtualMachine(args []string) (*VirtualMachine, error) {
 // getOptions will parse flags for options.
 func (v *VirtualMachine) getOptions(args []string) error {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
+
+	f.StringVar(&v.Opts.name, "name", "", "Virtual Machine instance name")
+	f.StringVar(&v.Opts.name, "n", "", "Virtual Machine instance name")
 
 	f.StringVar(&v.Opts.project, "project", "", "Google Cloud Project ID")
 	f.StringVar(&v.Opts.project, "p", "", "Google Cloud Project ID")

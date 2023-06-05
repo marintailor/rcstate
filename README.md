@@ -19,4 +19,10 @@ go install github.com/marintailor/rcstate@latest
 rcstate vm list \
   --project <project_name> \
   --zone <zone_name>
+
+# start an instance in specific project and zone
+rcstate vm start \
+  --name <instance_name> \
+  --project <project_name> \
+  --zone <zone_name>
 ```

@@ -11,8 +11,11 @@ vm command usage:
 Arguments:
   help      show usage
   list      list virtual machines
+  start     start the virtual machine
 
 Options:
+  -n, --name           virtual machine name
+
   -p, --project        Google Cloud Project ID
 
   -z, --zone           Google Cloud Zone name
@@ -22,6 +25,14 @@ Examples:
   List all instances in specific project and zone
 
     rcstate vm list \
+      --project <project_name> \
+      --zone <zone_name>
+
+
+  Start an instance in specific project and zone
+
+    rcstate vm start \
+      --name <instance_name> \
       --project <project_name> \
       --zone <zone_name>
 `
