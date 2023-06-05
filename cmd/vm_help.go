@@ -12,6 +12,7 @@ Arguments:
   help      show usage
   list      list virtual machines
   start     start the virtual machine
+  status    show status of the virtual machine
 
 Options:
   -n, --name           virtual machine name
@@ -32,6 +33,14 @@ Examples:
   Start an instance in specific project and zone
 
     rcstate vm start \
+      --name <instance_name> \
+      --project <project_name> \
+      --zone <zone_name>
+
+
+  Show status of an instance in specific project and zone
+
+    rcstate vm status \
       --name <instance_name> \
       --project <project_name> \
       --zone <zone_name>
