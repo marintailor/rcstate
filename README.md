@@ -2,7 +2,7 @@
 
 ## Overview
 
-rcstate is a CLI app written in Go to manage the state of resources in the Google Cloud.
+rcstate is a CLI app written in Go to manage the state of resources in Google Cloud.
 
 ## Installation
 
@@ -25,6 +25,15 @@ rcstate vm start \
   --name <instance_name> \
   --project <project_name> \
   --zone <zone_name>
+
+# start an instance in specific project and zone, and create a DNS record
+rcstate vm start \
+  --name <instance_name> \
+  --project <project_name> \
+  --zone <zone_name> \
+  --domain <dns_domain>
+  --dns-record-name <record_name> \
+  --dns-record-type <record_type>
 
 # show status of an instance in specific project and zone
 rcstate vm status \
