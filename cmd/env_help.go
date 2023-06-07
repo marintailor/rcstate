@@ -38,12 +38,12 @@ Examples:
 
   Change state of all environments:
 
-    rcstate env up -a -e <env_file>
+    rcstate env up/down -a -e <env_file>
 
 
   Change state of an environment:
 
-    rcstate env up -n <env_name> -e <env_file>
+    rcstate env up/down -n <env_name> -e <env_file>
 `
 	fmt.Println(text)
 
