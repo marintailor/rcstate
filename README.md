@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/marintailor/rcstate)](https://goreportcard.com/report/github.com/marintailor/rcstate)
+
 # rcstate
 
 ## Overview
