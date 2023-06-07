@@ -153,7 +153,7 @@ func (v *VirtualMachine) record(dnsRecord string) {
 		return
 	}
 
-	if err := record.NewRecord(v.Opts.ipList, v.Opts.dns.recordType, dnsRecord).Route53(); err != nil {
+	if err := record.NewRecord(v.Opts.ipList, v.Opts.dns.recordType, dnsRecord, v.Opts.dns.domain).Route53(); err != nil {
 		fmt.Println(err)
 		return
 	}

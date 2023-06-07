@@ -352,7 +352,7 @@ func (g *Group) instanceRecord(inst Instance) {
 		return
 	}
 
-	if err := record.NewRecord(inst.Record.IP, inst.Record.Type, inst.Record.Zone).Route53(); err != nil {
+	if err := record.NewRecord(inst.Record.IP, inst.Record.Type, inst.Record.Zone, inst.Record.Domain).Route53(); err != nil {
 		fmt.Println(err)
 		return
 	}

@@ -21,12 +21,12 @@ type Record struct {
 }
 
 // NewRecord returns a Record struct.
-func NewRecord(ip []string, rt string, zone string) *Record {
+func NewRecord(ip []string, rt string, zone string, domain string) *Record {
 	return &Record{
 		IP:     ip,
 		Type:   rt,
 		Zone:   zone,
-		Domain: "marincroitoru.com",
+		Domain: domain,
 	}
 }
 
