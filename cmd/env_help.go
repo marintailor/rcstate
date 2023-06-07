@@ -34,6 +34,16 @@ Examples:
   Show all environments or an environment with specific label(s):
 
     rcstate env show {-a | -n <env_name> } -l dev -e <env_file>
+
+
+  Change state of all environments:
+
+    rcstate env up -a -e <env_file>
+
+
+  Change state of an environment:
+
+    rcstate env up -n <env_name> -e <env_file>
 `
 	fmt.Println(text)
 
