@@ -23,6 +23,11 @@ func (v VirtualMachine) start() int {
 		v.record(dnsRecord)
 	}
 
+	if v.Opts.script.cmd != "" {
+		fmt.Println("=== Execute shell script")
+		v.script()
+	}
+
 	fmt.Printf("=== Done\n\n")
 
 	return 0

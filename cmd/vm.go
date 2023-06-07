@@ -7,6 +7,7 @@ import (
 
 	"github.com/marintailor/rcstate/api/gce"
 	"github.com/marintailor/rcstate/api/record"
+	"github.com/marintailor/rcstate/api/ssh"
 )
 
 // VirtualMachine holds configuration and methods to manage virtual machine instances.
@@ -23,6 +24,7 @@ type options struct {
 	ipList     []string
 	name       string
 	project    string
+	script     vmScript
 	zone       string
 }
 
@@ -31,6 +33,12 @@ type dns struct {
 	domain     string
 	recordName string
 	recordType string
+}
+
+// vmScript stores shell commands.
+type vmScript struct {
+	cmd string
+	ssh ssh.SSH
 }
 
 // vmRun executes the command 'vm'.
@@ -98,6 +106,15 @@ func (v *VirtualMachine) getOptions(args []string) error {
 
 	f.StringVar(&v.Opts.dns.recordType, "dns-record-type", "", "Create the DNS record")
 
+	f.StringVar(&v.Opts.script.cmd, "script", "", "run shell command on remote host")
+	f.StringVar(&v.Opts.script.cmd, "s", "", "run shell command on remote host")
+
+	f.StringVar(&v.Opts.script.ssh.Key, "ssh-key", "", "path to the SSH private key")
+
+	f.StringVar(&v.Opts.script.ssh.Port, "ssh-port", "", "SSH port number")
+
+	f.StringVar(&v.Opts.script.ssh.User, "ssh-user", "", "SSH username")
+
 	f.StringVar(&v.Opts.zone, "zone", "", "Google Cloud Zone name")
 	f.StringVar(&v.Opts.zone, "z", "", "Google Cloud Zone name")
 
@@ -140,4 +157,43 @@ func (v *VirtualMachine) record(dnsRecord string) {
 		fmt.Println(err)
 		return
 	}
+}
+
+// script will execute the shell commands.
+func (v *VirtualMachine) script() {
+	host := v.getHost()
+
+	script, err := ssh.NewSSH(host, v.Opts.script.ssh.Port, v.Opts.script.ssh.User, v.Opts.script.ssh.Key)
+	if err != nil {
+		fmt.Println("vm new ssh:", err)
+		return
+	}
+
+	if err := script.CMD(v.Opts.script.cmd); err != nil {
+		fmt.Println("vm script cmd:", err)
+	}
+}
+
+func (v *VirtualMachine) getHost() string {
+	var host string
+	if v.Opts.dns.recordName != "" && v.Opts.dns.domain != "" {
+		host = fmt.Sprintf("%s.%s", v.Opts.dns.recordName, v.Opts.dns.domain)
+	}
+
+	if host == "" && v.Opts.externalIP {
+		var err error
+		host, err = gce.GetInstanceExternalIP(v.Opts.name, v.Opts.project, v.Opts.zone)
+		if err != nil {
+			fmt.Printf("create record: get external IP address: %s", err)
+		}
+	}
+
+	if host == "" && len(v.Opts.ip) > 0 {
+		ipList := strings.Split(v.Opts.ip, ",")
+		if len(ipList) > 0 {
+			host = ipList[0]
+		}
+	}
+
+	return host
 }

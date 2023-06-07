@@ -11,6 +11,11 @@ func (v VirtualMachine) stop() int {
 		return 1
 	}
 
+	if v.Opts.script.cmd != "" {
+		fmt.Println("=== Execute shell script")
+		v.script()
+	}
+
 	fmt.Printf("=== Stop instance %q\n", v.Opts.name)
 	if err := v.Instances.Stop(v.Opts.name); err != nil {
 		fmt.Printf("stop instance %q: %v\n", v.Opts.name, err)
