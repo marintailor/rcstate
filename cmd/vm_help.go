@@ -16,7 +16,18 @@ Arguments:
   stop      stop the virtual machine
 
 Options:
-  -n, --name           virtual machine name
+  -d, --domain         Domain for DNS record
+
+  --dns-record-name    The DNS record name
+
+  --dns-record-type    The DNS record type
+
+  --external-ip        Use External IP address of instance for DNS record
+
+  --ip                 Provide IP address for DNS record
+                       Multiple addresses can be provided with comma delimiter
+
+  -n, --name           Virtual Machine name
 
   -p, --project        Google Cloud Project ID
 
@@ -38,6 +49,15 @@ Examples:
       --project <project_name> \
       --zone <zone_name>
 
+  Start an instance in specific project and zone, and create a DNS record
+
+    rcstate vm start \
+      --name <instance_name> \
+      --project <project_name> \
+      --zone <zone_name> \
+      --domain <dns_domain> \
+      --dns-record-name <record_name> \
+      --dns-record-type <record_type>
 
   Show status of an instance in specific project and zone
 

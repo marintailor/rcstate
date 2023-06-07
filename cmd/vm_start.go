@@ -17,6 +17,12 @@ func (v VirtualMachine) start() int {
 		return 1
 	}
 
+	if v.Opts.dns.recordName != "" {
+		dnsRecord := fmt.Sprintf("%s.%s", v.Opts.dns.recordName, v.Opts.dns.domain)
+		fmt.Printf("=== Create DNS record \"%s\"\n", dnsRecord)
+		v.record(dnsRecord)
+	}
+
 	fmt.Printf("=== Done\n\n")
 
 	return 0
