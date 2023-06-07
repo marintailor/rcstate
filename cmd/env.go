@@ -8,6 +8,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/marintailor/rcstate/api/gce"
+	"github.com/marintailor/rcstate/api/record"
+	"github.com/marintailor/rcstate/api/ssh"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -99,6 +103,7 @@ func envRun(args []string) int {
 	commands := map[string]func() int{
 		"help": func() int { return envHelp() },
 		"show": func() int { return envs.show() },
+		"up":   func() int { return envs.up() },
 	}
 
 	command, ok := commands[args[0]]
@@ -244,4 +249,141 @@ func (env *Environment) checkLabel(label string) bool {
 	}
 
 	return labelNumber == count
+}
+
+// groupState will bring a group to a desired state.
+func groupState(group []Group, state string) {
+	for i, g := range group {
+		vm := gce.NewInstances(g.Project, g.Zone)
+
+		if i > 0 {
+			fmt.Println(strings.Repeat("-", 40))
+		}
+
+		fmt.Printf("\nGROUP: %s\nPROJECT: %s\nZONE: %s\n\n", g.Name, g.Project, g.Zone)
+
+		for _, instance := range g.Resource.VM.Instance {
+			switch state {
+			case "up":
+				groupStateUp(vm, g, instance)
+			case "down":
+				groupStateDown(vm, g, instance)
+			}
+			fmt.Printf("=== Done\n\n")
+		}
+	}
+}
+
+// groupStateUp brings a group into Up state.
+func groupStateUp(vm *gce.Instances, g Group, instance Instance) {
+	fmt.Printf("=== Start instance %q\n", instance.Name)
+	if err := vm.Start(instance.Name); err != nil {
+		fmt.Println(err)
+	}
+
+	if instance.Record.Domain != "" {
+		fmt.Println("=== Create DNS record:", instance.Record.Zone)
+		g.instanceRecord(instance)
+	}
+
+	host := getHost(instance, g.Project, g.Zone)
+
+	if len(g.Resource.VM.Script.Up) > 0 {
+		fmt.Println("=== Execute VM script")
+		for _, cmd := range g.Resource.VM.Script.Up {
+			g.Resource.VM.Script.execute(host, cmd)
+		}
+	}
+
+	if len(instance.Script.Up) > 0 {
+		fmt.Println("=== Execute Instance script")
+		for _, cmd := range instance.Script.Up {
+			instance.Script.execute(host, cmd)
+		}
+	}
+}
+
+// groupStateUp brings a group into Down state.
+func groupStateDown(vm *gce.Instances, g Group, instance Instance) {
+	fmt.Printf("=== Stop instance %q\n", instance.Name)
+
+	host := getHost(instance, g.Project, g.Zone)
+
+	if len(instance.Script.Down) > 0 {
+		fmt.Println("=== Execute Instance script")
+		for _, cmd := range instance.Script.Down {
+			g.Resource.VM.Script.execute(host, cmd)
+		}
+	}
+
+	if len(g.Resource.VM.Script.Down) > 0 {
+		fmt.Println("=== Execute VM script")
+		for _, cmd := range g.Resource.VM.Script.Down {
+			instance.Script.execute(host, cmd)
+		}
+	}
+
+	if err := vm.Stop(instance.Name); err != nil {
+		fmt.Println(err)
+	}
+}
+
+// instanceRecord creates the DNS record for an instance.
+func (g *Group) instanceRecord(inst Instance) {
+	if inst.Record.ExternalIP {
+		externalIP, err := gce.GetInstanceExternalIP(inst.Name, g.Project, g.Zone)
+		if err != nil {
+			fmt.Printf("create record: get external IP address: %s", err)
+			return
+		}
+
+		if externalIP == "<nil>" {
+			fmt.Println("create record: instance does not have external IP address")
+		}
+
+		if externalIP != "<nil>" {
+			inst.Record.IP = append(inst.Record.IP, externalIP)
+		}
+	}
+
+	if record.CheckRecordIP(inst.Record.Zone, inst.Record.IP) {
+		fmt.Println("    DNS record is up-to-date")
+		return
+	}
+
+	if err := record.NewRecord(inst.Record.IP, inst.Record.Type, inst.Record.Zone).Route53(); err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+// getHost return a valid host address.
+func getHost(inst Instance, p string, z string) string {
+	if inst.Record.Zone != "" {
+		return inst.Record.Zone
+	}
+
+	if len(inst.Record.IP) != 0 {
+		return inst.Record.IP[0]
+	}
+
+	ip, err := gce.GetInstanceExternalIP(inst.Name, p, z)
+	if err != nil {
+		fmt.Println("host external IP:", err)
+	}
+
+	return ip
+}
+
+// execute will execute a shell command.
+func (s *EnvScript) execute(host string, cmd string) {
+	script, err := ssh.NewSSH(host, s.SSH.Port, s.SSH.User, s.SSH.Key)
+	if err != nil {
+		fmt.Println("env script:", err)
+		return
+	}
+
+	if err := script.CMD(cmd); err != nil {
+		fmt.Println("env script cmd:", err)
+	}
 }
