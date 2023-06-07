@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v3"
@@ -95,7 +96,10 @@ func envRun(args []string) int {
 		return 1
 	}
 
-	commands := map[string]func() int{}
+	commands := map[string]func() int{
+		"help": func() int { return envHelp() },
+		"show": func() int { return envs.show() },
+	}
 
 	command, ok := commands[args[0]]
 	if !ok {
@@ -203,4 +207,41 @@ func (e *Environments) environmentTemplate(ef string) (bytes.Buffer, error) {
 	}
 
 	return d, nil
+}
+
+// getEnvironment will return a specific environment.
+func (e *Environments) getEnvironment(name string) (Environment, error) {
+	for _, env := range e.Envs {
+		if env.Name == name {
+			return env, nil
+		}
+	}
+
+	return Environment{}, fmt.Errorf("environment %q present", name)
+}
+
+// checkLabel will check if a specific environment is labeled with provided labels.
+func (env *Environment) checkLabel(label string) bool {
+	if label == "" {
+		return true
+	}
+
+	if env.Label == "" && label != "" {
+		return false
+	}
+
+	labelList := strings.Split(label, ",")
+	labelNumber := len(labelList)
+
+	var count int
+	for _, l := range labelList {
+		envLabel := strings.Split(env.Label, ",")
+		for _, el := range envLabel {
+			if el == l {
+				count++
+			}
+		}
+	}
+
+	return labelNumber == count
 }

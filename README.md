@@ -12,6 +12,42 @@ go install github.com/marintailor/rcstate@latest
 
 ## Usage
 
+### Manage environments
+
+An environment represents one or more groups of resources that are already present in the Public Cloud.
+
+The environments are declared in a YAML file, and it is provided as an option with flag `--env-file`.
+
+```bash
+rcstate env show --all --env-file env-dev.yaml
+```
+
+**Examples:**
+
+```bash
+# show an environment
+rcstate env show \
+  --name <environment_name> \
+  --env-file <environment_file>
+
+# show all environments
+rcstate env show \
+  --all \
+  --env-file <environment_file>
+
+# show an environments with label "api"
+rcstate env show \
+  --name <environment_name> \
+  --label api \
+  --env-file <environment_file>
+
+# show all environments with label "api"
+rcstate env show \
+  --all \
+  --label api \
+  --env-file <environment_file>
+```
+
 ### Google Cloud Engine virtual machine
 
 ```bash
