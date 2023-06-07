@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"cloud.google.com/go/compute/apiv1/computepb"
+	"golang.org/x/oauth2"
+	auth "golang.org/x/oauth2/google"
 	compute_engine "google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 )
@@ -201,4 +205,70 @@ func (i *Instances) Stop(inst string) error {
 	}
 
 	return nil
+}
+
+// GetInstanceExternalIP returns the external IP address of the instance in specific project and zone.
+func GetInstanceExternalIP(inst string, project string, zone string) (string, error) {
+	url := fmt.Sprintf("https://compute.googleapis.com/compute/v1/projects/%s/zones/%s/instances/%s", project, zone, inst)
+	token := getToken()
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("new request: %w", err)
+	}
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("client response: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response body: %w", err)
+	}
+
+	return getNATIP(body), nil
+}
+
+// getToken returns an API token.
+func getToken() string {
+	var token *oauth2.Token
+	ctx := context.Background()
+	scopes := []string{
+		"https://www.googleapis.com/auth/cloud-platform",
+	}
+	credentials, err := auth.FindDefaultCredentials(ctx, scopes...)
+	if err == nil {
+		token, err = credentials.TokenSource.Token()
+		if err != nil {
+			fmt.Print(err)
+		}
+	}
+
+	return token.AccessToken
+}
+
+type InstanceDetails struct {
+	NIC []Interface `json:"networkInterfaces"`
+}
+
+type Interface struct {
+	AccessConfig []Config `json:"accessConfigs"`
+}
+
+type Config struct {
+	NATIP string `json:"natIP"`
+}
+
+// getNATIP returns the NAT IP address.
+func getNATIP(b []byte) string {
+	var data InstanceDetails
+	if err := json.Unmarshal(b, &data); err != nil {
+		fmt.Println("unmarshal instance details:", err)
+		return ""
+	}
+	return data.NIC[0].AccessConfig[0].NATIP
 }
