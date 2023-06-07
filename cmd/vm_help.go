@@ -31,6 +31,15 @@ Options:
 
   -p, --project        Google Cloud Project ID
 
+  -s, --script         Run shell command(s) on virtual machine with SSH connection
+                       NOTE: command(s) must be wrapped in double quotes
+
+  --ssh-key            Path to private key for SSH connection
+
+  --ssh-port           Port number for SSH connection
+
+  --ssh-user           Username for SSH connection
+
   -z, --zone           Google Cloud Zone name
 
 Examples:
@@ -49,6 +58,7 @@ Examples:
       --project <project_name> \
       --zone <zone_name>
 
+
   Start an instance in specific project and zone, and create a DNS record
 
     rcstate vm start \
@@ -58,6 +68,7 @@ Examples:
       --domain <dns_domain> \
       --dns-record-name <record_name> \
       --dns-record-type <record_type>
+
 
   Show status of an instance in specific project and zone
 
@@ -73,6 +84,32 @@ Examples:
       --name <instance_name> \
       --project <project_name> \
       --zone <zone_name>
+
+
+  Start an instance and run shell commands AFTER the instance is started
+
+    rcstate vm start \
+      --name <instance_name> \
+      --project <project_name> \
+      --zone <zone_name> \
+      --script "echo TEST > test-file" \
+      --ip <ip_addr> \
+      --ssh-key <path_to_key> \
+      --ssh-port <port_number> \
+      --ssh-user <username>
+
+
+  Stop an instance and run shell commands BEFORE the instance is stopped
+
+    rcstate vm stop \
+      --name <instance_name> \
+      --project <project_name> \
+      --zone <zone_name> \
+      --script "echo TEST > test-file" \
+      --ip <ip_addr> \
+      --ssh-key <path_to_key> \
+      --ssh-port <port_number> \
+      --ssh-user <username>
 `
 	fmt.Println(text)
 

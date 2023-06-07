@@ -31,9 +31,31 @@ rcstate vm start \
   --name <instance_name> \
   --project <project_name> \
   --zone <zone_name> \
-  --domain <dns_domain>
+  --domain <dns_domain> \
   --dns-record-name <record_name> \
   --dns-record-type <record_type>
+
+# start an instance and run shell commands AFTER the instance is started
+rcstate vm start \
+  --name <instance_name> \
+  --project <project_name> \
+  --zone <zone_name> \
+  --script "echo TEST > test-file" \
+  --ip <ip_addr> \
+  --ssh-key <path_to_key> \
+  --ssh-port <port_number> \
+  --ssh-user <username>
+
+# stop an instance and run shell commands BEFORE the instance is stopped
+rcstate vm stop \
+  --name <instance_name> \
+  --project <project_name> \
+  --zone <zone_name> \
+  --script "echo TEST > test-file" \
+  --ip <ip_addr> \
+  --ssh-key <path_to_key> \
+  --ssh-port <port_number> \
+  --ssh-user <username>
 
 # show status of an instance in specific project and zone
 rcstate vm status \
