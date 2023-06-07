@@ -101,6 +101,7 @@ func envRun(args []string) int {
 	}
 
 	commands := map[string]func() int{
+		"down": func() int { return envs.down() },
 		"help": func() int { return envHelp() },
 		"show": func() int { return envs.show() },
 		"up":   func() int { return envs.up() },
