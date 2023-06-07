@@ -12,7 +12,8 @@ func Run(args []string) int {
 	}
 
 	cmds := map[string]func([]string) int{
-		"vm": func(a []string) int { return vmRun(a) },
+		"env": func(a []string) int { return envRun(a) },
+		"vm":  func(a []string) int { return vmRun(a) },
 	}
 
 	cmd, ok := cmds[args[0]]
