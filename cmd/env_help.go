@@ -3,12 +3,12 @@ package cmd
 import "fmt"
 
 // envHelp will print the usage information for env command
-func envHelp() int {
+func envHelp() {
 	text := `
 env command usage:
-  rcstate env <argument> [option...]
+  rcstate env <command> [option...]
 
-Arguments:
+Commands:
   help    show usage
   show    show environment
 
@@ -46,6 +46,4 @@ Examples:
     rcstate env up/down -n <env_name> -e <env_file>
 `
 	fmt.Println(text)
-
-	return 0
 }
