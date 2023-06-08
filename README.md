@@ -100,7 +100,11 @@ rcstate env up/down \
 ```yaml
 variables:    # Global variables that are accessible from all environments
   APP_NAME:  test-app
-  DOMAIN:  test-domain.com
+  DNS_DOMAIN: example.com
+  DNS_TYPE: A
+  SSH_KEY: /home/user/.ssh/private_key
+  SSH_PORT: 22
+  SSH_USER: user
 environment:    # List of the environments
   - name: dev    # Environment name
     label: dev    # Environment label(s)

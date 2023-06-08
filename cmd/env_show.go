@@ -48,7 +48,7 @@ func (e *Environments) show() int {
 
 // showEnvironment will show all resources in specific environment.
 func showEnvironment(env Environment) {
-	fmt.Printf("\n%s\nENVIRONMENT: %s\n%s\n", strings.Repeat("=", 40), env.Name, strings.Repeat("=", 40))
+	fmt.Printf("\n%s\nENVIRONMENT: %s\nLABEL: %s\n%s\n", strings.Repeat("=", 40), env.Name, env.Label, strings.Repeat("=", 40))
 	for i, g := range env.Group {
 		if i > 0 {
 			fmt.Println(strings.Repeat("-", 40))
