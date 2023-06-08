@@ -1,6 +1,6 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/marintailor/rcstate)](https://goreportcard.com/report/github.com/marintailor/rcstate)
-
 # rcstate
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/marintailor/rcstate)](https://goreportcard.com/report/github.com/marintailor/rcstate)
 
 ## Overview
 
@@ -20,62 +20,84 @@ An environment represents one or more groups of resources that are already prese
 
 The environments are declared in a YAML file, and it is provided as an option with flag `--env-file`.
 
-```bash
-rcstate env show --all --env-file env-dev.yaml
-```
+The path to the environment file can be also set as an environment variable `RCSTATE_ENV_FILE`.
+
+NOTE: Option flag `--env-file` has higher priority.
+
 
 **Examples:**
 
+* show an environment
+
 ```bash
-# show an environment
 rcstate env show \
   --name <environment_name> \
   --env-file <environment_file>
+```
 
-# show all environments
+* show all environments
+
+```bash
 rcstate env show \
   --all \
   --env-file <environment_file>
+```
 
-# show an environments with label "api"
+* show an environments with label "api"
+
+```bash
 rcstate env show \
   --name <environment_name> \
   --label api \
   --env-file <environment_file>
+```
 
-# show all environments with label "api"
+* show all environments with label "api"
+
+```bash
 rcstate env show \
   --all \
   --label api \
   --env-file <environment_file>
+```
 
-# change state of an environment
+* change state of an environment
+
+```bash
 rcstate env up/down \
   --name <environment_name> \
   --env-file <environment_file>
+```
 
-#  change state of an environment labeled with "dev" and "qa"
+*  change state of an environment labeled with "dev" and "qa"
+
+```bash
 rcstate env up/down \
   --name <environment_name> \
   --label qa,api \
   --env-file <environment_file>
+```
 
-# change state of all environments
+* change state of all environments
+
+```bash
 rcstate env up/down \
   --all \
   --env-file <environment_file>
+```
 
-# change state of all environments labeled with "dev" and "qa"
+* change state of all environments labeled with "dev" and "qa"
+
+```bash
 rcstate env up/down \
   --all \
   --label qa,api \
   --env-file <environment_file>
 ```
 
-**Schema example of the environment YAML file:**
+**Schema example of the environment file:**
 
 ```yaml
-provider: gcp    # Acronym of the Public Cloud provider
 variables:    # Global variables that are accessible from all environments
   APP_NAME:  test-app
   DOMAIN:  test-domain.com
@@ -170,21 +192,28 @@ environment:    # List of the environments
                     - wget -O - https://g{{ .APP_NAME }}.{{ .DOMAIN }}/apps/{{ .APP_NAME }}/-/raw/main/init.sh | bash
 ```
 
-### Google Cloud Engine virtual machine
+### Manage virtual machine (Google Cloud Engine)
+
+* list all virtual machine instances in specific project and zone
 
 ```bash
-# list all virtual machine instances in specific project and zone
 rcstate vm list \
   --project <project_name> \
   --zone <zone_name>
+```
 
-# start an instance in specific project and zone
+* start an instance in specific project and zone
+
+```bash
 rcstate vm start \
   --name <instance_name> \
   --project <project_name> \
   --zone <zone_name>
+```
 
-# start an instance in specific project and zone, and create a DNS record
+* start an instance in specific project and zone, and create a DNS record
+
+```bash
 rcstate vm start \
   --name <instance_name> \
   --project <project_name> \
@@ -192,8 +221,11 @@ rcstate vm start \
   --domain <dns_domain> \
   --dns-record-name <record_name> \
   --dns-record-type <record_type>
+```
 
-# start an instance and run shell commands AFTER the instance is started
+* start an instance and run shell commands AFTER the instance is started
+
+```bash
 rcstate vm start \
   --name <instance_name> \
   --project <project_name> \
@@ -203,8 +235,11 @@ rcstate vm start \
   --ssh-key <path_to_key> \
   --ssh-port <port_number> \
   --ssh-user <username>
+```
 
-# stop an instance and run shell commands BEFORE the instance is stopped
+* stop an instance and run shell commands BEFORE the instance is stopped
+
+```bash
 rcstate vm stop \
   --name <instance_name> \
   --project <project_name> \
@@ -214,14 +249,20 @@ rcstate vm stop \
   --ssh-key <path_to_key> \
   --ssh-port <port_number> \
   --ssh-user <username>
+```
 
-# show status of an instance in specific project and zone
+* show status of an instance in specific project and zone
+
+```bash
 rcstate vm status \
   --name <instance_name> \
   --project <project_name> \
   --zone <zone_name>
+```
 
-# stop an instance in specific project and zone
+* stop an instance in specific project and zone
+
+```bash
 rcstate vm stop \
   --name <instance_name> \
   --project <project_name> \
