@@ -12,6 +12,22 @@ rcstate is a CLI app written in Go to manage the state of resources in Google Cl
 go install github.com/marintailor/rcstate@latest
 ```
 
+## Requirements
+
+### Google Cloud services
+
+An environment variable `GOOGLE_APPLICATION_CREDENTIALS` is required for authentication with Google Cloud services.
+
+For more information check [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials#GAC) documentation.
+
+### AWS Route 53
+
+Currently the DNS record is created with Route 53 DNS service.
+
+All requests are made using the AWS SDK for Go, and credentials should be stored in `~/.aws/credentials` file.
+
+For more information check [AWS SDK for Go](https://github.com/aws/aws-sdk-go).
+
 ## Usage
 
 ### Manage environments
@@ -119,9 +135,9 @@ environment:    # List of the environments
                 key: "{{ .SSH_KEY }}"
                 port: "{{ .SSH_PORT }}"
                 user: "{{ .SSH_USER }}"
-              up:    # Shell commands to be executed after instance is started
+              up:    # Shell commands to be executed AFTER instance is started
                 - sudo shutdown -h +30
-              down:    # Shell commands to be executed before instance is stopped
+              down:    # Shell commands to be executed BEFORE instance is stopped
                 - ~/clean-up.sh
             instance:    # List of the Virtual Machine instances
               - name: vm-dev-1    # Instance name
@@ -193,7 +209,7 @@ environment:    # List of the environments
                     port: "{{ .SSH_PORT }}"
                     user: "{{ .SSH_USER }}"
                   up:
-                    - wget -O - https://g{{ .APP_NAME }}.{{ .DOMAIN }}/apps/{{ .APP_NAME }}/-/raw/main/init.sh | bash
+                    - wget -O - https://{{ .APP_NAME }}.{{ .DOMAIN }}/init.sh | bash
 ```
 
 ### Manage virtual machine (Google Cloud Engine)
