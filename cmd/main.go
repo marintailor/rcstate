@@ -29,10 +29,11 @@ func Run(args []string) int {
 // help shows the usage information.
 func help() {
 	text := `
-Usage: rcstate <command> [args]
+Usage: rcstate <command> [options...]
 
 Commands:
-  vm      manage state of virtual machine instances
+  env     manage declared environments
+  vm      manage state of virtual machine instance
 `
 	fmt.Println(text)
 }

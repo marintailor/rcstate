@@ -88,6 +88,11 @@ type Record struct {
 
 // envRun will run logic to manage environments.
 func envRun(args []string) int {
+	if len(args) == 0 || args[0] == "help" {
+		envHelp()
+		return 0
+	}
+
 	envs, err := NewEnvironments(args)
 	if err != nil {
 		fmt.Println("new environments:", err)
@@ -102,7 +107,6 @@ func envRun(args []string) int {
 
 	commands := map[string]func() int{
 		"down": func() int { return envs.down() },
-		"help": func() int { return envHelp() },
 		"show": func() int { return envs.show() },
 		"up":   func() int { return envs.up() },
 	}
@@ -110,7 +114,7 @@ func envRun(args []string) int {
 	command, ok := commands[args[0]]
 	if !ok {
 		fmt.Println("No such command: env", args[0])
-		help()
+		fmt.Printf("\nFor usage information type:\n\n    rcstate env help\n\n")
 		return 1
 	}
 
@@ -125,32 +129,35 @@ func NewEnvironments(args []string) (*Environments, error) {
 		return nil, fmt.Errorf("not enough options")
 	}
 
-	if err := e.getFlags(args); err != nil {
-		return nil, fmt.Errorf("get flags: %w", err)
+	if err := e.parseFlags(args); err != nil {
+		return nil, fmt.Errorf("parse flags: %w", err)
 	}
 
 	if err := e.parseEnvironmentFile(); err != nil {
-		return nil, fmt.Errorf("get flags: %w", err)
+		return nil, fmt.Errorf("parse env file: %w", err)
 	}
 
 	return &e, nil
 }
 
-// getFlags will parse flags for environment options.
-func (e *Environments) getFlags(args []string) error {
+// parseFlags will parse flags for environment options.
+func (e *Environments) parseFlags(args []string) error {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
 
 	f.BoolVar(&e.all, "all", false, "all environments")
 	f.BoolVar(&e.all, "a", false, "all environments")
 
-	f.StringVar(&e.file, "env-file", "", "environment file")
-	f.StringVar(&e.file, "e", "", "environment file")
+	envFile := os.Getenv("RCSTATE_ENV_FILE")
+	f.StringVar(&e.file, "env-file", envFile, "environment file")
+	f.StringVar(&e.file, "e", envFile, "environment file")
 
 	f.StringVar(&e.label, "label", "", "environment label")
 	f.StringVar(&e.label, "l", "", "environment label")
 
 	f.StringVar(&e.name, "name", "", "environment name")
 	f.StringVar(&e.name, "n", "", "environment name")
+
+	f.Usage = func() { envHelp() }
 
 	if err := f.Parse(args[1:]); err != nil {
 		return fmt.Errorf("parse flags: %w", err)

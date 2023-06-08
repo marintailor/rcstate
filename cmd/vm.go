@@ -43,7 +43,7 @@ type vmScript struct {
 
 // vmRun executes the command 'vm'.
 func vmRun(args []string) int {
-	if len(args) < 2 {
+	if len(args) == 0 || args[0] == "help" {
 		vmHelp()
 		return 0
 	}
@@ -64,8 +64,8 @@ func vmRun(args []string) int {
 
 	cmd, ok := cmds[args[0]]
 	if !ok {
-		fmt.Println("no such command: vm", args[0])
-		help()
+		fmt.Println("No such command: vm", args[0])
+		fmt.Printf("\nFor usage information type:\n\n    rcstate vm help\n\n")
 		return 1
 	}
 
@@ -77,7 +77,7 @@ func NewVirtualMachine(args []string) (*VirtualMachine, error) {
 	var vm VirtualMachine
 
 	if err := vm.getOptions(args); err != nil {
-		return &vm, fmt.Errorf("parse flags: %w", err)
+		return &vm, fmt.Errorf("get options: %w", err)
 	}
 
 	vm.Instances = *gce.NewInstances(vm.Opts.project, vm.Opts.zone)

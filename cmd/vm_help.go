@@ -6,9 +6,9 @@ import "fmt"
 func vmHelp() int {
 	text := `
 vm command usage:
-  rcstate vm <argument> [option...]
+  rcstate vm <command> [option...]
 
-Arguments:
+Commands:
   help      show usage
   list      list virtual machines
   start     start the virtual machine
