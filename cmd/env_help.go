@@ -9,8 +9,10 @@ env command usage:
   rcstate env <command> [option...]
 
 Commands:
-  help    show usage
-  show    show environment
+  down    stop all resources in environment(s)
+  help    show usage information
+  show    show environment(a)
+  up      start all resources in environment(s)
 
 Options:
   -a, --all        show all environments
