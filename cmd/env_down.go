@@ -20,7 +20,7 @@ func (e *Environments) down() int {
 			return 1
 		}
 
-		fmt.Printf("\n%s\nENVIRONMENT: %s\n%s\n", strings.Repeat("=", 40), env.Name, strings.Repeat("=", 40))
+		fmt.Printf("\n%s\nENVIRONMENT: %s\nLABEL: %s\n%s\n", strings.Repeat("=", 40), env.Name, env.Label, strings.Repeat("=", 40))
 		groupState(env.Group, "down")
 
 		return 0
@@ -32,7 +32,7 @@ func (e *Environments) down() int {
 				continue
 			}
 
-			fmt.Printf("\n%s\nENVIRONMENT: %s\n%s\n", strings.Repeat("=", 40), env.Name, strings.Repeat("=", 40))
+			fmt.Printf("\n%s\nENVIRONMENT: %s\nLABEL: %s\n%s\n", strings.Repeat("=", 40), env.Name, env.Label, strings.Repeat("=", 40))
 			groupState(env.Group, "down")
 			count++
 		}
