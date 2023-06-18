@@ -1,4 +1,4 @@
-package cmd
+package cli
 
 import (
 	"bytes"
@@ -7,24 +7,38 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/marintailor/rcstate/api/gce"
+	"github.com/marintailor/rcstate/cmd/api/vm"
 )
 
 // list returns a table formatted list of instances.
-func (v VirtualMachine) list() int {
-	if _, err := v.Instances.GetInstancesList(); err != nil {
-		fmt.Println("list instances:", err)
+func vmList(args []string) int {
+	v, err := vm.NewVirtualMachine(args)
+	if err != nil {
+		fmt.Println("list: new environment:", err)
 		return 1
 	}
 
+	if err := v.Cfg.ParseFlags(args); err != nil {
+		fmt.Println("list: parse flags:", err)
+		return 1
+	}
+
+	if err := v.Instances.GetInstancesList(); err != nil {
+		fmt.Println("list: get instances list:", err)
+		return 1
+	}
+
+	fmt.Println("LIST")
+	fmt.Println(v.Cfg)
+
 	columnNames := []string{"Name", "Status", "Internal", "External", "Type", "Preemptible"}
-	columnWidth := getColumnsWidth(columnNames, v.Instances.List)
+	columnWidth := getColumnsWidth(columnNames, v)
 
 	var out bytes.Buffer
 
-	tableHeader(&out, v.Opts.project, v.Opts.zone, columnWidth)
+	tableHeader(&out, v, columnWidth)
 	tableColumns(&out, columnNames, columnWidth)
-	tableRows(&out, v.Instances.List, columnNames, columnWidth)
+	tableRows(&out, v, columnNames, columnWidth)
 
 	fmt.Println(out.String())
 
@@ -32,13 +46,13 @@ func (v VirtualMachine) list() int {
 }
 
 // tableHeader writes to a writer the header for the table.
-func tableHeader(w io.Writer, project string, zone string, columnWidths []int) {
+func tableHeader(w io.Writer, v *vm.VirtualMachine, columnWidths []int) {
 	line := ""
 	for _, w := range columnWidths {
 		line = line + strings.Repeat("=", w+2)
 	}
 
-	fmt.Fprintf(w, "\n%s\nPROJECT: %s    ZONE: %s\n%s\n\n", line, project, zone, line)
+	fmt.Fprintf(w, "\n%s\nPROJECT: %s    ZONE: %s\n%s\n\n", line, v.Cfg.Project, v.Cfg.Zone, line)
 }
 
 // tableColumns writes to a writer the column names of the table.
@@ -55,8 +69,9 @@ func tableColumns(w io.Writer, columnNames []string, columnWidths []int) {
 }
 
 // tableRows writes to a writer a row of details for each instance.
-func tableRows(w io.Writer, l []gce.Instance, columnNames []string, columnWidths []int) {
-	for _, inst := range l {
+func tableRows(w io.Writer, v *vm.VirtualMachine, columnNames []string, columnWidths []int) {
+	fmt.Println("v.Instances.List=", v.Instances.List)
+	for _, inst := range v.Instances.List {
 		row := ""
 		v := reflect.ValueOf(inst)
 		for j := 0; j < len(columnNames); j++ {
@@ -75,7 +90,7 @@ func tableRows(w io.Writer, l []gce.Instance, columnNames []string, columnWidths
 }
 
 // getColumnsWidth returns a slice of widths for each table column based on values of instance's details.
-func getColumnsWidth(columnNames []string, l []gce.Instance) []int {
+func getColumnsWidth(columnNames []string, v *vm.VirtualMachine) []int {
 	columnWidths := make([]int, len(columnNames))
 
 	// Initial column width based on column names
@@ -84,7 +99,7 @@ func getColumnsWidth(columnNames []string, l []gce.Instance) []int {
 	}
 
 	// Get the width of each columns based on field's value
-	for _, instance := range l {
+	for _, instance := range v.Instances.List {
 		v := reflect.ValueOf(instance)
 		for i := 0; i < len(columnNames); i++ {
 			f := v.FieldByName(columnNames[i]).String()
