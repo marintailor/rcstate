@@ -1,45 +1,66 @@
-package cmd
+package cli
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/marintailor/rcstate/api/gce"
+	"github.com/marintailor/rcstate/cmd/api/env"
+	"github.com/marintailor/rcstate/cmd/api/gce"
 )
 
-// down will show all resources in environments.
-func (e *Environments) show() int {
+func envShow(args []string) int {
+	cfg := env.Config{}
+
+	if err := cfg.ParseFlags(args); err != nil {
+		fmt.Println("get config:", err)
+	}
+
+	return showLocal(&cfg)
+}
+
+func showLocal(cfg *env.Config) int {
+	if err := cfg.ParseEnvironmentFile(); err != nil {
+		fmt.Println("parse env file:", err)
+		return 1
+	}
+
+	data, err := cfg.GetData()
+	if err != nil {
+		fmt.Println("get config data:", err)
+	}
+
+	e, err := env.NewEnvironments(string(data))
+	if err != nil {
+		fmt.Println("new environment:", err)
+		return 1
+	}
+
 	switch {
-	case e.name != "":
-		env, err := e.getEnvironment(e.name)
+	case cfg.Name != "":
+		environment, err := e.GetEnvironment(cfg.Name, cfg.Label)
 		if err != nil {
 			fmt.Println(err)
 			return 1
 		}
 
-		if !env.checkLabel(e.label) {
-			fmt.Printf("environment %q is not labeled with %q\n", e.name, e.label)
-			return 1
-		}
-
-		showEnvironment(env)
+		showEnvironment(environment)
 
 		return 0
-	case e.all:
+	case cfg.All:
 		var count int
 
-		for _, env := range e.Envs {
-			if !env.checkLabel(e.label) {
+		for _, environment := range e.Envs {
+			if !environment.CheckLabel(cfg.Label) {
 				continue
 			}
 
-			showEnvironment(env)
+			showEnvironment(environment)
 
 			count++
 		}
 
 		if len(e.Envs) > 0 && count == 0 {
-			fmt.Printf("no environment is labeled with %q\n", e.label)
+			fmt.Printf("no environment is labeled with %q\n", cfg.Label)
 		}
 	}
 
@@ -47,8 +68,8 @@ func (e *Environments) show() int {
 }
 
 // showEnvironment will show all resources in specific environment.
-func showEnvironment(env Environment) {
-	fmt.Printf("\n%s\nENVIRONMENT: %s\nLABEL: %s\n%s\n", strings.Repeat("=", 40), env.Name, env.Label, strings.Repeat("=", 40))
+func showEnvironment(env env.Environment) {
+	fmt.Printf("\n%s\nENVIRONMENT LOCAL: %s\nLABEL: %s\n%s\n", strings.Repeat("=", 40), env.Name, env.Label, strings.Repeat("=", 40))
 	for i, g := range env.Group {
 		if i > 0 {
 			fmt.Println(strings.Repeat("-", 40))
@@ -79,7 +100,7 @@ func showEnvironment(env Environment) {
 }
 
 // padWidth returns width of the pad.
-func padWidth(instances []Instance) int {
+func padWidth(instances []env.Instance) int {
 	pw := 16
 	for _, instance := range instances {
 		if len(instance.Name) >= pw {

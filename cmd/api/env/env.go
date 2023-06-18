@@ -1,29 +1,24 @@
-package cmd
+package env
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"os"
 	"strings"
-	"text/template"
 
-	"github.com/marintailor/rcstate/api/gce"
-	"github.com/marintailor/rcstate/api/record"
-	"github.com/marintailor/rcstate/api/ssh"
-
-	"gopkg.in/yaml.v3"
+	"github.com/marintailor/rcstate/cmd/api/gce"
+	"github.com/marintailor/rcstate/cmd/api/record"
+	"github.com/marintailor/rcstate/cmd/api/ssh"
+	"gopkg.in/yaml.v2"
 )
 
 // Environments stores all environments, provided Options, and related information.
 type Environments struct {
-	Envs     []Environment `yaml:"environment"`
-	Provider string        `yaml:"provider"`
-	Vars     Variable      `yaml:"variable"`
-	all      bool
-	file     string
-	label    string
-	name     string
+	Envs []Environment `yaml:"environment"`
+	Vars Variable      `yaml:"variable"`
 }
 
 // Variable stores variables declared in environment file.
@@ -34,7 +29,6 @@ type Environment struct {
 	Group []Group `yaml:"group"`
 	Label string  `yaml:"label"`
 	Name  string  `yaml:"name"`
-	State string
 }
 
 // Group stores details of a group.
@@ -86,77 +80,40 @@ type Record struct {
 	Zone       string   `yaml:"zone"`
 }
 
-// envRun will run logic to manage environments.
-func envRun(args []string) int {
-	if len(args) == 0 || args[0] == "help" {
-		envHelp()
-		return 0
-	}
-
-	envs, err := NewEnvironments(args)
-	if err != nil {
-		fmt.Println("new environments:", err)
-		envHelp()
-		return 1
-	}
-
-	if envs.name == "" && !envs.all {
-		fmt.Println("environment not specified")
-		return 1
-	}
-
-	commands := map[string]func() int{
-		"down": func() int { return envs.down() },
-		"show": func() int { return envs.show() },
-		"up":   func() int { return envs.up() },
-	}
-
-	command, ok := commands[args[0]]
-	if !ok {
-		fmt.Println("No such command: env", args[0])
-		fmt.Printf("\nFor usage information type:\n\n    rcstate env help\n\n")
-		return 1
-	}
-
-	return command()
+type Config struct {
+	Name  string       `json:"name"`
+	Label string       `json:"label"`
+	All   bool         `json:"all"`
+	Data  Environments `json:"data"`
+	File  string
+	Host  string
 }
 
-// NewEnvironments return a Environments struct.
-func NewEnvironments(args []string) (*Environments, error) {
-	var e Environments
-
-	if len(args) < 2 && args[0] != "help" {
-		return nil, fmt.Errorf("not enough options")
-	}
-
-	if err := e.parseFlags(args); err != nil {
-		return nil, fmt.Errorf("parse flags: %w", err)
-	}
-
-	if err := e.parseEnvironmentFile(); err != nil {
-		return nil, fmt.Errorf("parse env file: %w", err)
-	}
-
-	return &e, nil
+func (c *Config) GetConfig(b []byte) error {
+	return json.Unmarshal(b, &c)
 }
 
-// parseFlags will parse flags for environment options.
-func (e *Environments) parseFlags(args []string) error {
+// TODO: refactor/remove?
+func (c *Config) ParseFlags(args []string) error {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
 
-	f.BoolVar(&e.all, "all", false, "all environments")
-	f.BoolVar(&e.all, "a", false, "all environments")
+	f.BoolVar(&c.All, "all", false, "all environments")
+	f.BoolVar(&c.All, "a", false, "all environments")
 
 	envFile := os.Getenv("RCSTATE_ENV_FILE")
-	f.StringVar(&e.file, "env-file", envFile, "environment file")
-	f.StringVar(&e.file, "e", envFile, "environment file")
+	f.StringVar(&c.File, "env-file", envFile, "environment file")
+	f.StringVar(&c.File, "e", envFile, "environment file")
 
-	f.StringVar(&e.label, "label", "", "environment label")
-	f.StringVar(&e.label, "l", "", "environment label")
+	f.StringVar(&c.Host, "host", "", "Server host that will execute the commands")
+	f.StringVar(&c.Host, "h", "", "Server host that will execute the commands")
 
-	f.StringVar(&e.name, "name", "", "environment name")
-	f.StringVar(&e.name, "n", "", "environment name")
+	f.StringVar(&c.Label, "label", "", "environment label")
+	f.StringVar(&c.Label, "l", "", "environment label")
 
+	f.StringVar(&c.Name, "name", "", "environment name")
+	f.StringVar(&c.Name, "n", "", "environment name")
+
+	// TODO: remove/update?
 	f.Usage = func() { envHelp() }
 
 	if err := f.Parse(args[1:]); err != nil {
@@ -166,31 +123,31 @@ func (e *Environments) parseFlags(args []string) error {
 	return nil
 }
 
-// parseEnvironmentFile will parse an environment file for environments.
-func (e *Environments) parseEnvironmentFile() error {
-	if e.file == "" {
+// ParseEnvironmentFile will parse an environment file for environments.
+func (c *Config) ParseEnvironmentFile() error {
+	if c.File == "" {
 		return fmt.Errorf("no environment file was provided")
 	}
 
-	if _, err := os.Stat(e.file); err != nil {
-		return fmt.Errorf("file stat %q: %w", e.file, err)
+	if _, err := os.Stat(c.File); err != nil {
+		return fmt.Errorf("file stat %q: %w", c.File, err)
 	}
 
-	data, err := os.ReadFile(e.file)
+	data, err := os.ReadFile(c.File)
 	if err != nil {
 		return fmt.Errorf("read file %q: %w", data, err)
 	}
 
-	if err := yaml.Unmarshal(data, &e); err != nil {
+	if err := yaml.Unmarshal(data, &c.Data); err != nil {
 		return fmt.Errorf("unmarshal template: %w", err)
 	}
 
-	tpl, err := e.environmentTemplate(e.file)
+	tpl, err := environmentTemplate(c.Data, c.File)
 	if err != nil {
 		return fmt.Errorf("environment template: %w", err)
 	}
 
-	if err := yaml.Unmarshal(tpl.Bytes(), &e); err != nil {
+	if err := yaml.Unmarshal(tpl.Bytes(), &c.Data); err != nil {
 		return fmt.Errorf("unmarshal template: %w", err)
 	}
 
@@ -198,7 +155,7 @@ func (e *Environments) parseEnvironmentFile() error {
 }
 
 // environmentTemplate will fill placeholders inside the environment file.
-func (e *Environments) environmentTemplate(ef string) (bytes.Buffer, error) {
+func environmentTemplate(e Environments, ef string) (bytes.Buffer, error) {
 	var d bytes.Buffer
 
 	if _, err := os.Stat(ef); err != nil {
@@ -222,19 +179,32 @@ func (e *Environments) environmentTemplate(ef string) (bytes.Buffer, error) {
 	return d, nil
 }
 
-// getEnvironment will return a specific environment.
-func (e *Environments) getEnvironment(name string) (Environment, error) {
+func (c *Config) GetData() ([]byte, error) {
+	return json.Marshal(&c.Data)
+}
+
+func NewEnvironments(data string) (*Environments, error) {
+	var e Environments
+
+	if err := json.Unmarshal([]byte(data), &e); err != nil {
+		return nil, fmt.Errorf("unmarshal env data: %w", err)
+	}
+
+	return &e, nil
+}
+
+func (e *Environments) GetEnvironment(name string, label string) (Environment, error) {
 	for _, env := range e.Envs {
-		if env.Name == name {
+		if env.Name == name && env.CheckLabel(label) {
 			return env, nil
 		}
 	}
 
-	return Environment{}, fmt.Errorf("environment %q present", name)
+	return Environment{}, fmt.Errorf("environment %q with label %q not found", name, label)
 }
 
 // checkLabel will check if a specific environment is labeled with provided labels.
-func (env *Environment) checkLabel(label string) bool {
+func (env *Environment) CheckLabel(label string) bool {
 	if label == "" {
 		return true
 	}
@@ -259,16 +229,15 @@ func (env *Environment) checkLabel(label string) bool {
 	return labelNumber == count
 }
 
-// groupState will bring a group to a desired state.
-func groupState(group []Group, state string) {
-	for i, g := range group {
+func (env *Environment) State(state string) {
+	for _, g := range env.Group {
 		vm := gce.NewInstances(g.Project, g.Zone)
 
-		if i > 0 {
-			fmt.Println(strings.Repeat("-", 40))
-		}
+		// if i > 0 {
+		// 	fmt.Println(strings.Repeat("-", 40))
+		// }
 
-		fmt.Printf("\nGROUP: %s\nPROJECT: %s\nZONE: %s\n\n", g.Name, g.Project, g.Zone)
+		// fmt.Printf("\nGROUP: %s\nPROJECT: %s\nZONE: %s\n\n", g.Name, g.Project, g.Zone)
 
 		for _, instance := range g.Resource.VM.Instance {
 			switch state {
@@ -277,34 +246,34 @@ func groupState(group []Group, state string) {
 			case "down":
 				groupStateDown(vm, g, instance)
 			}
-			fmt.Printf("=== Done\n\n")
+			// fmt.Printf("=== Done\n\n")
 		}
 	}
 }
 
 // groupStateUp brings a group into Up state.
 func groupStateUp(vm *gce.Instances, g Group, instance Instance) {
-	fmt.Printf("=== Start instance %q\n", instance.Name)
+	// fmt.Printf("=== Start instance %q\n", instance.Name)
 	if err := vm.Start(instance.Name); err != nil {
 		fmt.Println(err)
 	}
 
 	if instance.Record.Domain != "" {
-		fmt.Println("=== Create DNS record:", instance.Record.Zone)
+		// fmt.Println("=== Create DNS record:", instance.Record.Zone)
 		g.instanceRecord(instance)
 	}
 
 	host := getHost(instance, g.Project, g.Zone)
 
 	if len(g.Resource.VM.Script.Up) > 0 {
-		fmt.Println("=== Execute VM script")
+		// fmt.Println("=== Execute VM script")
 		for _, cmd := range g.Resource.VM.Script.Up {
 			g.Resource.VM.Script.execute(host, cmd)
 		}
 	}
 
 	if len(instance.Script.Up) > 0 {
-		fmt.Println("=== Execute Instance script")
+		// fmt.Println("=== Execute Instance script")
 		for _, cmd := range instance.Script.Up {
 			instance.Script.execute(host, cmd)
 		}
@@ -313,19 +282,19 @@ func groupStateUp(vm *gce.Instances, g Group, instance Instance) {
 
 // groupStateUp brings a group into Down state.
 func groupStateDown(vm *gce.Instances, g Group, instance Instance) {
-	fmt.Printf("=== Stop instance %q\n", instance.Name)
+	// fmt.Printf("=== Stop instance %q\n", instance.Name)
 
 	host := getHost(instance, g.Project, g.Zone)
 
 	if len(instance.Script.Down) > 0 {
-		fmt.Println("=== Execute Instance script")
+		// fmt.Println("=== Execute Instance script")
 		for _, cmd := range instance.Script.Down {
 			g.Resource.VM.Script.execute(host, cmd)
 		}
 	}
 
 	if len(g.Resource.VM.Script.Down) > 0 {
-		fmt.Println("=== Execute VM script")
+		// fmt.Println("=== Execute VM script")
 		for _, cmd := range g.Resource.VM.Script.Down {
 			instance.Script.execute(host, cmd)
 		}

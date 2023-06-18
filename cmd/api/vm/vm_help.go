@@ -1,4 +1,4 @@
-package cmd
+package vm
 
 import "fmt"
 
