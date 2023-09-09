@@ -38,14 +38,15 @@ func NewSSH(host string, port string, user string, keyPath string) (*SSH, error)
 		return nil, fmt.Errorf("parse key: %w", err)
 	}
 
-	hostKeyCallback, err := knownhosts.New("/Users/marin/.ssh/known_hosts")
+	hostKeyCallback, err := knownhosts.New("/Users/" + user + "/.ssh/known_hosts")
 	if err != nil {
 		return nil, fmt.Errorf("host key callback: %w", err)
 	}
 
 	conf := &ssh.ClientConfig{
-		User:            user,
-		HostKeyCallback: hostKeyCallback,
+		User:              user,
+		HostKeyCallback:   hostKeyCallback,
+		HostKeyAlgorithms: []string{ssh.KeyAlgoED25519},
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
@@ -81,6 +82,7 @@ func checkSSHArgs(host string, port string, user string, keyPath string) error {
 // CMD executes shell commands over SSH connection.
 func (s *SSH) CMD(cmd string) error {
 	dest := fmt.Sprintf("%s:%s", s.Host, s.Port)
+
 	conn, err := ssh.Dial("tcp", dest, s.conf)
 	if err != nil {
 		return fmt.Errorf("ssh dial: %w", err)

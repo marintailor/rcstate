@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Environments stores all environments, provided Options, and related information.
+// Environments stores environment details, and variables.
 type Environments struct {
 	Envs []Environment `yaml:"environment"`
 	Vars Variable      `yaml:"variable"`
@@ -80,29 +80,38 @@ type Record struct {
 	Zone       string   `yaml:"zone"`
 }
 
+// Config stores options from parsed flags.
 type Config struct {
-	Name  string       `json:"name"`
-	Label string       `json:"label"`
-	All   bool         `json:"all"`
-	Data  Environments `json:"data"`
-	File  string
-	Host  string
+	Name   string       `json:"name"`
+	Label  string       `json:"label"`
+	All    bool         `json:"all"`
+	Data   Environments `json:"data"`
+	File   string
+	Host   string
+	Dry    bool
+	Format string
 }
 
+// GetConfig will get configuration from JSON.
 func (c *Config) GetConfig(b []byte) error {
 	return json.Unmarshal(b, &c)
 }
 
-// TODO: refactor/remove?
+// ParseFlags will parse flags for options.
 func (c *Config) ParseFlags(args []string) error {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
 
 	f.BoolVar(&c.All, "all", false, "all environments")
 	f.BoolVar(&c.All, "a", false, "all environments")
 
+	f.BoolVar(&c.Dry, "dry", false, "Run the command without executing it")
+
 	envFile := os.Getenv("RCSTATE_ENV_FILE")
 	f.StringVar(&c.File, "env-file", envFile, "environment file")
 	f.StringVar(&c.File, "e", envFile, "environment file")
+
+	f.StringVar(&c.Format, "format", "", "Output format of API request")
+	f.StringVar(&c.Format, "f", "", "Output format of API request")
 
 	f.StringVar(&c.Host, "host", "", "Server host that will execute the commands")
 	f.StringVar(&c.Host, "h", "", "Server host that will execute the commands")
@@ -113,8 +122,7 @@ func (c *Config) ParseFlags(args []string) error {
 	f.StringVar(&c.Name, "name", "", "environment name")
 	f.StringVar(&c.Name, "n", "", "environment name")
 
-	// TODO: remove/update?
-	f.Usage = func() { envHelp() }
+	f.Usage = func() { fmt.Printf("missing or wrong option(s)\nfor usage information type:\n  rcstate env help\n\n") }
 
 	if err := f.Parse(args[1:]); err != nil {
 		return fmt.Errorf("parse flags: %w", err)
@@ -179,10 +187,12 @@ func environmentTemplate(e Environments, ef string) (bytes.Buffer, error) {
 	return d, nil
 }
 
+// GetData return the environment data.
 func (c *Config) GetData() ([]byte, error) {
 	return json.Marshal(&c.Data)
 }
 
+// NewEnvironments returns an Environment struct.
 func NewEnvironments(data string) (*Environments, error) {
 	var e Environments
 
@@ -193,6 +203,7 @@ func NewEnvironments(data string) (*Environments, error) {
 	return &e, nil
 }
 
+// GetEnvironment return an Environment struct from the list of environments.
 func (e *Environments) GetEnvironment(name string, label string) (Environment, error) {
 	for _, env := range e.Envs {
 		if env.Name == name && env.CheckLabel(label) {
@@ -203,7 +214,7 @@ func (e *Environments) GetEnvironment(name string, label string) (Environment, e
 	return Environment{}, fmt.Errorf("environment %q with label %q not found", name, label)
 }
 
-// checkLabel will check if a specific environment is labeled with provided labels.
+// CheckLabel will check if a specific environment is labeled with provided labels.
 func (env *Environment) CheckLabel(label string) bool {
 	if label == "" {
 		return true
@@ -229,16 +240,10 @@ func (env *Environment) CheckLabel(label string) bool {
 	return labelNumber == count
 }
 
+// State manages the state of an environment.
 func (env *Environment) State(state string) {
 	for _, g := range env.Group {
 		vm := gce.NewInstances(g.Project, g.Zone)
-
-		// if i > 0 {
-		// 	fmt.Println(strings.Repeat("-", 40))
-		// }
-
-		// fmt.Printf("\nGROUP: %s\nPROJECT: %s\nZONE: %s\n\n", g.Name, g.Project, g.Zone)
-
 		for _, instance := range g.Resource.VM.Instance {
 			switch state {
 			case "up":
@@ -246,35 +251,32 @@ func (env *Environment) State(state string) {
 			case "down":
 				groupStateDown(vm, g, instance)
 			}
-			// fmt.Printf("=== Done\n\n")
 		}
 	}
 }
 
 // groupStateUp brings a group into Up state.
 func groupStateUp(vm *gce.Instances, g Group, instance Instance) {
-	// fmt.Printf("=== Start instance %q\n", instance.Name)
 	if err := vm.Start(instance.Name); err != nil {
-		fmt.Println(err)
+		fmt.Println("group state up: vm start:", err)
 	}
 
 	if instance.Record.Domain != "" {
-		// fmt.Println("=== Create DNS record:", instance.Record.Zone)
 		g.instanceRecord(instance)
 	}
 
 	host := getHost(instance, g.Project, g.Zone)
 
 	if len(g.Resource.VM.Script.Up) > 0 {
-		// fmt.Println("=== Execute VM script")
 		for _, cmd := range g.Resource.VM.Script.Up {
+			cmd = strings.ReplaceAll(cmd, "&gt;", ">")
 			g.Resource.VM.Script.execute(host, cmd)
 		}
 	}
 
 	if len(instance.Script.Up) > 0 {
-		// fmt.Println("=== Execute Instance script")
 		for _, cmd := range instance.Script.Up {
+			cmd = strings.ReplaceAll(cmd, "&gt;", ">")
 			instance.Script.execute(host, cmd)
 		}
 	}
@@ -282,26 +284,24 @@ func groupStateUp(vm *gce.Instances, g Group, instance Instance) {
 
 // groupStateUp brings a group into Down state.
 func groupStateDown(vm *gce.Instances, g Group, instance Instance) {
-	// fmt.Printf("=== Stop instance %q\n", instance.Name)
-
 	host := getHost(instance, g.Project, g.Zone)
 
 	if len(instance.Script.Down) > 0 {
-		// fmt.Println("=== Execute Instance script")
 		for _, cmd := range instance.Script.Down {
+			cmd = strings.ReplaceAll(cmd, "&gt;", ">")
 			g.Resource.VM.Script.execute(host, cmd)
 		}
 	}
 
 	if len(g.Resource.VM.Script.Down) > 0 {
-		// fmt.Println("=== Execute VM script")
 		for _, cmd := range g.Resource.VM.Script.Down {
+			cmd = strings.ReplaceAll(cmd, "&gt;", ">")
 			instance.Script.execute(host, cmd)
 		}
 	}
 
 	if err := vm.Stop(instance.Name); err != nil {
-		fmt.Println(err)
+		fmt.Println("group state down: vm stop:", err)
 	}
 }
 
@@ -324,12 +324,11 @@ func (g *Group) instanceRecord(inst Instance) {
 	}
 
 	if record.CheckRecordIP(inst.Record.Zone, inst.Record.IP) {
-		fmt.Println("    DNS record is up-to-date")
 		return
 	}
 
 	if err := record.NewRecord(inst.Record.IP, inst.Record.Type, inst.Record.Zone, inst.Record.Domain).Route53(); err != nil {
-		fmt.Println(err)
+		fmt.Println("instance record: new record:", err)
 		return
 	}
 }
