@@ -16,7 +16,6 @@ func Run(args []string) int {
 	return cli.Run(args)
 }
 
-// TODO: update
 // help shows the usage information.
 func help() {
 	text := `
@@ -24,6 +23,7 @@ Usage: rcstate <command> [options...]
 
 Commands:
   env     manage declared environments
+  help    show usage information
   vm      manage state of virtual machine instance
 `
 	fmt.Println(text)

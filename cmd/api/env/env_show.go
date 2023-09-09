@@ -7,12 +7,14 @@ import (
 	"github.com/marintailor/rcstate/cmd/api/gce"
 )
 
+// ShowEnvironment stores environment information for show command.
 type ShowEnvironment struct {
 	Name  string      `json:"name"`
 	Label string      `json:"label"`
 	Group []ShowGroup `json:"group"`
 }
 
+// ShowEnvironment stores group information for show command.
 type ShowGroup struct {
 	Name     string       `json:"name"`
 	Project  string       `json:"project"`
@@ -20,15 +22,18 @@ type ShowGroup struct {
 	Resource ShowResource `json:"resource"`
 }
 
+// ShowEnvironment stores resource information for show command.
 type ShowResource struct {
 	VM []gce.Instance `json:"vm"`
 }
 
-func (se *ShowEnvironment) GetDetails(e Environment) {
+// GetDetailsEnv will get details about the environment for show command.
+func (se *ShowEnvironment) GetDetailsEnv(e Environment) {
 	se.Name = e.Name
 	se.GetDetailsGroup(e.Group)
 }
 
+// GetDetailsEnv will get details about the group for show command.
 func (se *ShowEnvironment) GetDetailsGroup(groups []Group) {
 	for _, g := range groups {
 		group := ShowGroup{}
@@ -42,11 +47,12 @@ func (se *ShowEnvironment) GetDetailsGroup(groups []Group) {
 
 }
 
+// GetDetailsEnv will get details about virtual machines for show command.
 func GetDetailsVM(insts []Instance, project string, zone string) []gce.Instance {
 	var list []gce.Instance
 
 	instances := *gce.NewInstances(project, zone)
-	if err := instances.GetInstancesList(); err != nil {
+	if _, err := instances.GetInstancesList(); err != nil {
 		fmt.Println("list instances:", err)
 	}
 
@@ -61,16 +67,17 @@ func GetDetailsVM(insts []Instance, project string, zone string) []gce.Instance 
 	return list
 }
 
+// Show returns the information about the environment(s).
 func (c *Config) Show() (string, error) {
-	// log.Println(c)
 	if c.Name != "" {
-		return c.ShowName()
+		return c.ShowSingle()
 	}
 
 	return c.ShowAll()
 }
 
-func (c *Config) ShowName() (string, error) {
+// ShowSingle returns the information about an environment.
+func (c *Config) ShowSingle() (string, error) {
 	data, err := c.GetData()
 	if err != nil {
 		return "", fmt.Errorf("marshal env: %w", err)
@@ -91,7 +98,7 @@ func (c *Config) ShowName() (string, error) {
 	}
 
 	var out ShowEnvironment
-	out.GetDetails(env)
+	out.GetDetailsEnv(env)
 
 	json, err := json.Marshal(out)
 	if err != nil {
@@ -101,6 +108,7 @@ func (c *Config) ShowName() (string, error) {
 	return string(json), nil
 }
 
+// ShowAll returns the information about all environments.
 func (c *Config) ShowAll() (string, error) {
 	data, err := c.GetData()
 	if err != nil {
@@ -116,7 +124,7 @@ func (c *Config) ShowAll() (string, error) {
 	for _, env := range e.Envs {
 		var item ShowEnvironment
 		if env.CheckLabel(c.Label) {
-			item.GetDetails(env)
+			item.GetDetailsEnv(env)
 			list = append(list, item)
 		}
 	}

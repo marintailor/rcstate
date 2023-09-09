@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// envRun runs the logic for the env command
 func envRun(args []string) int {
 	if len(args) == 0 || args[0] == "help" {
 		envHelp()

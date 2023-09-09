@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// vmRun executes the command 'vm'.
+// vmRun runs the logic for the vm command.
 func vmRun(args []string) int {
 	if len(args) == 0 || args[0] == "help" {
 		vmHelp()

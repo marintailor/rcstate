@@ -2,15 +2,17 @@ package env
 
 import "fmt"
 
+// Down will shutdown one or all environments based on provided config..
 func (c *Config) Down() (string, error) {
 	if c.Name != "" {
-		return c.DownName()
+		return c.DownSingle()
 	}
 
 	return c.DownAll()
 }
 
-func (c *Config) DownName() (string, error) {
+// DownSingle will shutdown an environment.
+func (c *Config) DownSingle() (string, error) {
 	data, err := c.GetData()
 	if err != nil {
 		return "", fmt.Errorf("marshal env: %w", err)
@@ -35,6 +37,7 @@ func (c *Config) DownName() (string, error) {
 	return "{ \"status\": \"success\" }", nil
 }
 
+// DownAll will shutdown all environments.
 func (c *Config) DownAll() (string, error) {
 	data, err := c.GetData()
 	if err != nil {

@@ -42,12 +42,12 @@ func NewInstances(project string, zone string) *Instances {
 }
 
 // GetInstancesList returns a JSON formatted string with instances.
-func (i *Instances) GetInstancesList() error {
+func (i *Instances) GetInstancesList() (string, error) {
 	ctx := context.Background()
 	instancesClient, err := compute.NewInstancesRESTClient(ctx)
 
 	if err != nil {
-		return fmt.Errorf("NewInstancesRESTClient: %w", err)
+		return "", fmt.Errorf("NewInstancesRESTClient: %w", err)
 	}
 	defer instancesClient.Close()
 
@@ -63,14 +63,19 @@ func (i *Instances) GetInstancesList() error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("iterate instances: %w", err)
+			return "", fmt.Errorf("iterate instances: %w", err)
 		}
 
 		d := getInstanceDetails(inst)
 		i.addInstance(d)
 	}
 
-	return nil
+	j, err := json.Marshal(i.List)
+	if err != nil {
+		return "", fmt.Errorf("marshal instances list: %w", err)
+	}
+
+	return string(j), nil
 }
 
 // GetList returns a slice of Instance.

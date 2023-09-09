@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"strings"
@@ -13,13 +14,17 @@ import (
 // VirtualMachine holds configuration and methods to manage virtual machine instances.
 type VirtualMachine struct {
 	Instances gce.Instances
-	Cfg       Config
+	Project   string
+	Zone      string
 }
 
-// options stores options from parsed flags.
+// Config stores options from parsed flags.
 type Config struct {
 	DNS        DNS
+	Dry        bool
 	ExternalIP bool
+	Format     string
+	Host       string
 	Ip         string
 	IpList     []string
 	Name       string
@@ -28,7 +33,7 @@ type Config struct {
 	Zone       string
 }
 
-// dns stores DNS configuration.
+// DNS stores DNS configuration.
 type DNS struct {
 	Domain     string
 	RecordName string
@@ -42,26 +47,35 @@ type VMScript struct {
 }
 
 // NewVirtualMachine returns a VirtualMachine struct.
-func NewVirtualMachine(args []string) (*VirtualMachine, error) {
+func NewVirtualMachine(project string, zone string) (*VirtualMachine, error) {
 	var vm VirtualMachine
 
-	if err := vm.Cfg.ParseFlags(args); err != nil {
-		return &vm, fmt.Errorf("get options: %w", err)
-	}
-
-	vm.Instances = *gce.NewInstances(vm.Cfg.Project, vm.Cfg.Zone)
+	vm.Instances = *gce.NewInstances(project, zone)
 
 	return &vm, nil
 }
 
-// getOptions will parse flags for options.
+// GetConfig will get configuration from JSON.
+func (c *Config) GetConfig(b []byte) error {
+	return json.Unmarshal(b, &c)
+}
+
+// ParseFlags will parse flags for options.
 func (c *Config) ParseFlags(args []string) error {
 	f := flag.NewFlagSet(args[0], flag.ExitOnError)
 
 	f.StringVar(&c.DNS.Domain, "domain", "", "Domain for DNS record")
 	f.StringVar(&c.DNS.Domain, "d", "", "Domain for DNS record")
 
+	f.BoolVar(&c.Dry, "dry", false, "Run the command without executing it")
+
 	f.BoolVar(&c.ExternalIP, "external-ip", false, "Get external IP address for DNS record")
+
+	f.StringVar(&c.Format, "format", "", "Output format of API request")
+	f.StringVar(&c.Format, "f", "", "Output format of API request")
+
+	f.StringVar(&c.Host, "host", "", "Server host that will execute the commands")
+	f.StringVar(&c.Host, "h", "", "Server host that will execute the commands")
 
 	f.StringVar(&c.Ip, "ip", "", "IP addresses for DNS record")
 
@@ -87,7 +101,7 @@ func (c *Config) ParseFlags(args []string) error {
 	f.StringVar(&c.Zone, "zone", "", "Google Cloud Zone name")
 	f.StringVar(&c.Zone, "z", "", "Google Cloud Zone name")
 
-	f.Usage = func() { vmHelp() }
+	f.Usage = func() { fmt.Printf("missing or wrong option(s)\nfor usage information type:\n  rcstate vm help\n\n") }
 
 	if err := f.Parse(args[1:]); err != nil {
 		return fmt.Errorf("parse flags for command %q: %w", args[0], err)
@@ -96,7 +110,7 @@ func (c *Config) ParseFlags(args []string) error {
 	return nil
 }
 
-// record will create a DNS record.
+// Record will create a DNS record.
 func (c *Config) Record(dnsRecord string) {
 	if c.ExternalIP {
 		externalIP, err := gce.GetInstanceExternalIP(c.Name, c.Project, c.Zone)
@@ -118,17 +132,16 @@ func (c *Config) Record(dnsRecord string) {
 	}
 
 	if record.CheckRecordIP(dnsRecord, c.IpList) {
-		fmt.Println("    DNS record is up-to-date")
 		return
 	}
 
 	if err := record.NewRecord(c.IpList, c.DNS.RecordType, dnsRecord, c.DNS.Domain).Route53(); err != nil {
-		fmt.Println(err)
+		fmt.Println("new record:", err)
 		return
 	}
 }
 
-// script will execute the shell commands.
+// ExecuteScript will execute the shell commands.
 func (c *Config) ExecuteScript() {
 	host := c.getHost()
 
@@ -143,6 +156,7 @@ func (c *Config) ExecuteScript() {
 	}
 }
 
+// getHost return a valid host address.
 func (c *Config) getHost() string {
 	var host string
 	if c.DNS.RecordName != "" && c.DNS.Domain != "" {

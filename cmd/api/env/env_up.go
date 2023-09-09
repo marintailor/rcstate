@@ -2,15 +2,17 @@ package env
 
 import "fmt"
 
+// Up will turn up one or all environments based on provided config..
 func (c *Config) Up() (string, error) {
 	if c.Name != "" {
-		return c.UpName()
+		return c.UpSingle()
 	}
 
 	return c.UpAll()
 }
 
-func (c *Config) UpName() (string, error) {
+// UpSingle will turn up an environment.
+func (c *Config) UpSingle() (string, error) {
 	data, err := c.GetData()
 	if err != nil {
 		return "", fmt.Errorf("marshal env: %w", err)
@@ -35,6 +37,7 @@ func (c *Config) UpName() (string, error) {
 	return "{ \"status\": \"success\" }", nil
 }
 
+// UpAll will turn up all environments.
 func (c *Config) UpAll() (string, error) {
 	data, err := c.GetData()
 	if err != nil {
