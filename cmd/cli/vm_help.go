@@ -9,7 +9,7 @@ vm command usage:
   rcstate vm <command> [option...]
 
 Commands:
-  help      show usage
+  help      show usage information
   list      list virtual machines
   start     start the virtual machine
   status    show status of the virtual machine
@@ -22,7 +22,14 @@ Options:
 
   --dns-record-type    The DNS record type
 
+  --dry                Run the command without executing the logic
+
   --external-ip        Use External IP address of instance for DNS record
+
+  -f, --fprmat         Print the API request data of the command
+                       Supported output formats: json
+
+  -h, --host           Address of the remote host where the command will be executed
 
   --ip                 Provide IP address for DNS record
                        Multiple addresses can be provided with comma delimiter
@@ -44,14 +51,14 @@ Options:
 
 Examples:
 
-  List all instances in specific project and zone
+  List all instances in specific project and zone:
 
     rcstate vm list \
       --project <project_name> \
       --zone <zone_name>
 
 
-  Start an instance in specific project and zone
+  Start an instance in specific project and zone:
 
     rcstate vm start \
       --name <instance_name> \
@@ -59,7 +66,7 @@ Examples:
       --zone <zone_name>
 
 
-  Start an instance in specific project and zone, and create a DNS record
+  Start an instance in specific project and zone, and create a DNS record:
 
     rcstate vm start \
       --name <instance_name> \
@@ -70,7 +77,7 @@ Examples:
       --dns-record-type <record_type>
 
 
-  Show status of an instance in specific project and zone
+  Show status of an instance in specific project and zone:
 
     rcstate vm status \
       --name <instance_name> \
@@ -78,7 +85,7 @@ Examples:
       --zone <zone_name>
 
 
-  Stop an instance in specific project and zone
+  Stop an instance in specific project and zone:
 
     rcstate vm stop \
       --name <instance_name> \
@@ -86,7 +93,7 @@ Examples:
       --zone <zone_name>
 
 
-  Start an instance and run shell commands AFTER the instance is started
+  Start an instance and run shell commands AFTER the instance is started:
 
     rcstate vm start \
       --name <instance_name> \
@@ -99,7 +106,7 @@ Examples:
       --ssh-user <username>
 
 
-  Stop an instance and run shell commands BEFORE the instance is stopped
+  Stop an instance and run shell commands BEFORE the instance is stopped:
 
     rcstate vm stop \
       --name <instance_name> \
@@ -110,6 +117,15 @@ Examples:
       --ssh-key <path_to_key> \
       --ssh-port <port_number> \
       --ssh-user <username>
+
+
+  Print the API request data in JSON format without executing the command:
+
+      rcstate vm list \
+        --project <project_name> \
+        --zone <zone_name> \
+        --format json \
+        --dry
 `
 	fmt.Println(text)
 
